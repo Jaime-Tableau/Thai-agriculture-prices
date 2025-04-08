@@ -1,15 +1,7 @@
-// ✅ Final deployment push - testid support
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 
-import { useEffect, useState } from 'react';
-import {
-  fetchProductTypes,
-  fetchProductGroups,
-  fetchProductNames,
-  fetchPrices,
-} from '../api';
-import PriceChart from './PriceChart';
-
-const Dropdowns = () => {
+const Dropdowns = ({ onSearch }) => {
   const [productTypes, setProductTypes] = useState([]);
   const [productGroups, setProductGroups] = useState([]);
   const [productNames, setProductNames] = useState([]);
@@ -17,162 +9,120 @@ const Dropdowns = () => {
   const [selectedType, setSelectedType] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('');
   const [selectedName, setSelectedName] = useState('');
+
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  const [priceData, setPriceData] = useState([]);
+  const apiBase = import.meta.env.VITE_API_BASE_URL;
 
-  // Initial product types
   useEffect(() => {
-    fetchProductTypes()
-      .then(res => setProductTypes(res.data))
-      .catch(console.error);
+    axios.get(`${apiBase}/dropdowns/product-types`).then((res) => {
+      setProductTypes(res.data);
+    });
   }, []);
 
-  // Fetch product groups when type changes
   useEffect(() => {
     if (selectedType) {
-      fetchProductGroups(selectedType)
-        .then(res => setProductGroups(res.data))
-        .catch(console.error);
+      axios.get(`${apiBase}/dropdowns/product-groups?type=${selectedType}`).then((res) => {
+        setProductGroups(res.data);
+        setSelectedGroup('');
+        setProductNames([]);
+        setSelectedName('');
+      });
     }
-    setSelectedGroup('');
-    setSelectedName('');
-    setProductGroups([]);
-    setProductNames([]);
   }, [selectedType]);
 
-  // Fetch product names when group changes
   useEffect(() => {
     if (selectedGroup) {
-      fetchProductNames(selectedGroup)
-        .then(res => setProductNames(res.data))
-        .catch(console.error);
+      axios.get(`${apiBase}/dropdowns/product-names?group=${selectedGroup}`).then((res) => {
+        setProductNames(res.data);
+        setSelectedName('');
+      });
     }
-    setSelectedName('');
-    setProductNames([]);
   }, [selectedGroup]);
 
-  // 🔍 Manual fetch triggered by user
   const handleSearch = () => {
-    if (selectedType && selectedGroup && selectedName) {
-      fetchPrices({
-        product: selectedName,
-        group: selectedGroup,
-        start_date: startDate,
-        end_date: endDate,
-      })
-        .then(res => setPriceData(res.data))
-        .catch(console.error);
-    } else {
-      setPriceData([]);
-    }
+    onSearch({
+      type: selectedType,
+      group: selectedGroup,
+      name: selectedName,
+      startDate,
+      endDate,
+    });
   };
 
   return (
-    <div className="space-y-6">
-      {/* Dropdowns */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <select
-          className="p-2 rounded border"
-          data-testid="product-type"
-          value={selectedType}
-          onChange={e => setSelectedType(e.target.value)}
-        >
-          <option value="">Select Product Type</option>
-          {productTypes.map(item => (
-            <option key={item.value} value={item.value}>{item.label}</option>
-          ))}
-        </select>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <select
+        data-testid="product-type"
+        className="p-2 rounded border"
+        value={selectedType}
+        onChange={(e) => setSelectedType(e.target.value)}
+      >
+        <option value="">Select Product Type</option>
+        {productTypes.map((type) => (
+          <option key={type.value} value={type.value}>
+            {type.label}
+          </option>
+        ))}
+      </select>
 
-        <select
-          className="p-2 rounded border"
-          data-testid="product-group"
-          value={selectedGroup}
-          onChange={e => setSelectedGroup(e.target.value)}
-          disabled={!selectedType}
-        >
-          <option value="">Select Product Group</option>
-          {productGroups.map(item => (
-            <option key={item.value} value={item.value}>{item.label}</option>
-          ))}
-        </select>
+      <select
+        data-testid="product-group"
+        className="p-2 rounded border"
+        value={selectedGroup}
+        onChange={(e) => setSelectedGroup(e.target.value)}
+        disabled={!productGroups.length}
+      >
+        <option value="">Select Product Group</option>
+        {productGroups.map((group) => (
+          <option key={group.value} value={group.value}>
+            {group.label}
+          </option>
+        ))}
+      </select>
 
-        <select
-          className="p-2 rounded border"
-          data-testid="product-name"
-          value={selectedName}
-          onChange={e => setSelectedName(e.target.value)}
-          disabled={!selectedGroup}
-        >
-          <option value="">Select Product Name</option>
-          {productNames.map(item => (
-            <option key={item.value} value={item.value}>{item.label}</option>
-          ))}
-        </select>
-      </div>
+      <select
+        data-testid="product-name"
+        className="p-2 rounded border"
+        value={selectedName}
+        onChange={(e) => setSelectedName(e.target.value)}
+        disabled={!productNames.length}
+      >
+        <option value="">Select Product Name</option>
+        {productNames.map((name) => (
+          <option key={name.value} value={name.value}>
+            {name.label}
+          </option>
+        ))}
+      </select>
 
-      {/* Date Pickers */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <input
-          type="date"
-          className="p-2 rounded border"
-          data-testid="start-date"
-          value={startDate}
-          onChange={e => setStartDate(e.target.value)}
-        />
-        <input
-          type="date"
-          className="p-2 rounded border"
-          data-testid="end-date"
-          value={endDate}
-          onChange={e => setEndDate(e.target.value)}
-        />
-      </div>
+      <input
+        data-testid="start-date"
+        type="date"
+        className="p-2 rounded border"
+        value={startDate}
+        onChange={(e) => setStartDate(e.target.value)}
+      />
 
-      {/* Search Button */}
-      <div className="text-center">
-        <button
-          className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-          onClick={handleSearch}
-          data-testid="search-button"
-          disabled={!selectedType || !selectedGroup || !selectedName}
-        >
-          Search
-        </button>
-      </div>
+      <input
+        data-testid="end-date"
+        type="date"
+        className="p-2 rounded border"
+        value={endDate}
+        onChange={(e) => setEndDate(e.target.value)}
+      />
 
-      {/* Data Table + Chart */}
-      {priceData.length > 0 && (
-        <>
-          <div className="overflow-x-auto border rounded bg-white p-4">
-            <h2 className="text-lg font-semibold mb-2">Price Data</h2>
-            <table className="min-w-full table-auto text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-200">
-                  <th className="p-2 border">Date</th>
-                  <th className="p-2 border">Price Range</th>
-                  <th className="p-2 border">Average Price (THB)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {priceData.map((row, index) => (
-                  <tr key={index} className="hover:bg-gray-100">
-                    <td className="p-2 border">{row.date}</td>
-                    <td className="p-2 border">{row.price_range}</td>
-                    <td className="p-2 border">{row.avg_price}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <PriceChart data={priceData} />
-        </>
-      )}
+      <button
+        data-testid="search-button"
+        className="p-2 bg-blue-500 text-white rounded"
+        onClick={handleSearch}
+        disabled={!selectedName}
+      >
+        Search
+      </button>
     </div>
   );
 };
 
 export default Dropdowns;
-
