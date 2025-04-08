@@ -1,3 +1,5 @@
+// Updated on <today’s date> to trigger deploy
+
 import { useEffect, useState } from 'react';
 import {
   fetchProductTypes,
